@@ -1,0 +1,11 @@
+
+
+- name: Add sitemap cron
+  cron:
+      name: myproject:sitemap:create
+      minute: "0"
+      hour: "5"
+      user: "{{admin_user}}"
+      job: "/usr/bin/flock -w 0 -E 0  /tmp/sitemap-create.lock {{ base_path }}/sites/example.com/bin/console myproject:sitemap:create > /dev/null"
+      cron_file: sitemap_create
+

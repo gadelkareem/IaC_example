@@ -1,0 +1,15 @@
+
+- name: restart php7.2-fpm
+  service: name=php7.2-fpm state=restarted enabled=yes
+  when: handlers_enabled
+
+- name: restart Nginx
+  service: name=nginx state=restarted enabled=yes
+  when: handlers_enabled
+
+- name: restart redis
+  service: name=redis-server state=restarted enabled=yes
+  when: handlers_enabled
+
+
+

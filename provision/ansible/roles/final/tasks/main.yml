@@ -1,0 +1,8 @@
+
+- name: Update locate DB
+  shell: updatedb
+
+- name: apt update
+  apt: update_cache=yes
+
+

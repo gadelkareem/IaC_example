@@ -1,0 +1,26 @@
+
+- name: Install redis.
+  apt: pkg=redis state=latest
+
+- name: Copy redis configuration.
+  template:
+    src: redis.conf.j2
+    dest: /etc/redis/redis.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: add a vm.overcommit_memory setting at the end of the sysctl.conf
+  sysctl: name=vm.overcommit_memory value=1 state=present reload=yes
+
+- name: redis-server ulimit
+  copy:
+    dest: /etc/default/redis-server
+    content: "ULIMIT=4096"
+    mode: 0644
+    owner: root
+    group: root
+
+- name: Ensure redis is started and set to run on startup.
+  service: name=redis-server state=restarted enabled=yes
+

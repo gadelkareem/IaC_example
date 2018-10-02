@@ -1,0 +1,52 @@
+
+
+- ec2_group_facts:
+    region: "{{ aws_region }}"
+    filter:
+      name: "general_{{env}}"
+  register: security_groups
+
+- name: install aws-cli
+  pip:
+    name: awscli
+    state: latest
+  delegate_to: 127.0.0.1
+
+# issue with full ex https://github.com/ansible/ansible-modules-core/issues/633
+- name: Create an RDS instance in a single availability zone
+  command: "aws rds create-db-instance
+           --db-instance-identifier postgres1-{{env}}
+           --db-instance-class {{ postgres_instance_type }}
+           --availability-zone {{ aws_zones[0] }}
+           --engine {{ postgres_engine }}
+           --engine-version {{ postgres_engine_version }}
+           --db-parameter-group-name {{ postgres_parameter_group }}
+           --storage-type {{ postgres_storage }}
+           --allocated-storage {{ postgres_size }}
+           --master-username {{ postgresql_admin_user }}
+           --master-user-password {{ postgresql_admin_password }}
+           --db-name {{ postgresql_admin_user }}
+           --vpc-security-group-ids {{ security_groups.security_groups[].id }}
+           --publicly-accessible
+           --preferred-maintenance-window 'Mon:05:00-Mon:06:30'
+           --auto-minor-version-upgrade
+           --backup-retention-period 5
+           --preferred-backup-window '03:00-03:30'
+           --tags Key=Name,Value={{ instance_name }},Key=Env,Value={{ env }}"
+  environment:
+      AWS_ACCESS_KEY_ID: "{{aws_key_id}}"
+      AWS_SECRET_ACCESS_KEY: "{{aws_secret_key}}"
+      AWS_DEFAULT_REGION:  "{{ aws_region }}"
+  become_user: root
+  delegate_to: 127.0.0.1
+  register: single_zone_result
+  failed_when: single_zone_result.rc != 0 and ('DBInstanceAlreadyExists' not in single_zone_result.stderr)
+  changed_when: "single_zone_result.rc == 0"
+  no_log: True
+
+
+
+
+
+
+

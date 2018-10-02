@@ -1,0 +1,70 @@
+---
+- name: Check if ssh is configured
+  stat: path=/root/ssh_configured
+  register: ssh_configured
+
+- name: Config SSH
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^[#\\s]*{{ item.var }} "
+    line: "{{item.var}} {{item.val}}"
+    state: present
+    backrefs: yes
+    backup: yes
+  with_items:
+      - { var: 'Port', val: "{{ssh_port}}" }
+      - { var: 'Protocol', val: "2" }
+      - { var: 'HostbasedAuthentication', val: "no" }
+      - { var: 'AllowUsers', val: "{{admin_user}}" }
+      - { var: 'PasswordAuthentication', val: "no" }
+      - { var: 'HostKey /etc/ssh/ssh_host_rsa_key', val: "" }
+      - { var: 'HostKey /etc/ssh/ssh_host_dsa_key', val: "" }
+      - { var: 'HostKey /etc/ssh/ssh_host_ecdsa_key', val: "" }
+      - { var: 'HostKey /etc/ssh/ssh_host_dsa_key', val: "" }
+      - { var: 'RSAAuthentication', val: "yes" }
+      - { var: 'PubkeyAuthentication', val: "yes" }
+      - { var: 'IgnoreRhosts', val: "yes" }
+#      - { var: 'UsePAM', val: "yes" }
+  when: ssh_configured.stat.exists == False
+
+- name: Config SSH
+  lineinfile:
+    dest: /etc/ssh/sshd_config
+    regexp: "^[#\\s]*{{ item.var }} "
+    line: "{{item.var}} {{item.val}}"
+    state: present
+    backrefs: yes
+    backup: yes
+  with_items:
+      - { var: 'PermitRootLogin', val: "no" }
+  when: ssh_configured.stat.exists == False and admin_user != "root"
+
+- name: Ensure group "admin" exists
+  group:
+    name: admin
+    state: present
+
+- name: Ensure admin user "{{admin_user}}" exists
+  user:
+    name: "{{ admin_user }}"
+    shell: /bin/bash
+    group: admin
+    state: present
+
+- name: Add admin group "admin" to sudoers
+  lineinfile: dest=/etc/sudoers state=present regexp='^%admin ALL\=' line='%admin ALL=(ALL) NOPASSWD:ALL' validate='visudo -cf %s'
+
+- name: Set authorized key
+  authorized_key:
+    user: "{{admin_user}}"
+    state: present
+    key: "{{ssh_key}}"
+  when: ssh_configured.stat.exists == False
+
+- name: restart sshd
+  service: name=sshd state=restarted
+  when: ssh_configured.stat.exists == False
+
+- name: create ssh_configured file
+  file: path=/root/ssh_configured state=touch
+

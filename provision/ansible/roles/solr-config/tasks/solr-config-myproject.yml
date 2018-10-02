@@ -1,0 +1,43 @@
+---
+
+- include: postgresql-connector.yml
+
+- stat: path="{{solr_home}}/data/myproject"
+  register: myproject_dir
+
+#sudo su solr -c "/opt/solr/bin/solr delete -c myproject"
+- name: Create myproject core
+  shell: "sudo su solr -c '{{solr_install_path}}/bin/solr create_core -c myproject'"
+  when: myproject_dir.stat.exists == False
+
+- name: Copy myproject core config
+  copy: src="myproject/conf/{{ item }}" dest="{{solr_home}}/data/myproject/conf/{{item}}" owner=solr group=solr backup=no
+  with_items:
+    - db-data-config.xml
+    - managed-schema
+    - solrconfig.xml
+  when: myproject_dir.stat.exists == False
+
+- name: Copy myproject data config
+  template: src="myproject/conf/{{ item }}" dest="{{solr_home}}/data/myproject/conf/{{item}}" owner=solr group=solr backup=no
+  with_items:
+    - db-data-config.xml.j2
+  when: myproject_dir.stat.exists == False
+
+#- pause:
+#    seconds: 2
+#
+#- name: Create full import
+#  uri:
+#    url: "http://localhost:8983/solr/myproject/dataimport?command=full-import&clean=true&commit=true&optimize=true&synchronous=false&wt=json"
+#    method: GET
+#    status_code: 200
+#
+#- name: Create delta import
+#  uri:
+#    url: http://localhost:8983/solr/myproject/dataimport?command=delta-import&commit=true&optimize=true&synchronous=false&wt=json
+#    method: GET
+#    status_code: 200
+#    body_format: json
+
+

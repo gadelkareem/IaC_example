@@ -1,0 +1,37 @@
+
+
+- name: Set app path
+  set_fact:
+    build_number: "{{ lookup('pipe', 'date +%Y%m%d%H%M%S') }}"
+  when: build_number == ""
+
+- name: Set app path
+  set_fact:
+    app_path: "{{ base_path }}/sites/example.com"
+    build_file: "{{app_name}}.{{ build_number }}.tar.bz2"
+
+- debug: msg="Wrting to {{build_file}}"
+
+- include: "{{item}}"
+  with_first_found:
+      - files:
+          - "{{app_name}}-artifact.yml"
+        skip: true
+
+- name: Write latest build
+  copy: content="{{ build_file }}" dest="{{ base_path }}/builds/{{env}}/{{latest_deploy_build_file}}"
+
+- name: Upload to S3
+  s3_sync:
+    bucket: "{{s3_artifacts}}"
+    region: "{{aws_region}}"
+    file_root: "{{ base_path }}/builds/{{env}}"
+    key_prefix: "builds/{{env}}"
+    file_change_strategy: force
+    include: "{{build_file}},{{latest_deploy_build_file}}"
+
+- name: Removing build
+  file:
+    path: "{{ base_path }}/builds/{{env}}/{{build_file}}"
+    state: absent
+

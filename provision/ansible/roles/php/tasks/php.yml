@@ -1,0 +1,46 @@
+
+- name: NGINX | Adding existing user to group www-data
+  user: name="{{ admin_user }}"
+    groups=www-data
+    append=yes
+
+- name: install php packages
+  apt: pkg={{ item }} state=present
+  with_items:
+    - php-fpm
+    - php-cli
+    - php-common
+    - php-curl
+    - php-json
+    - php-gd
+    - php-odbc
+    - php-mbstring
+    - php-mysql
+    - php-pgsql
+    - php-xmlrpc
+    - php-opcache
+    - php-intl
+    - php-bz2
+    - php-xml
+    - php-zip
+    - php-redis
+    - redis-tools
+    - php-pear
+    - libmcrypt-dev
+    - libreadline-dev
+    - php-dev
+    - php-sqlite3
+
+- name: Install PHP dev packages for dev environment
+  apt: pkg={{ item }} state=present
+  with_items:
+    - php-xdebug
+  when: env == "dev"
+
+- name: Install PECL mcrypt
+  shell: echo "\n\n\n\n\n\n\n\n\n" | pecl install mcrypt-1.0.1
+  ignore_errors: yes
+
+- name: restart PHP FPM
+  service: name=php7.2-fpm state=restarted enabled="{{enable_php_fpm}}"
+

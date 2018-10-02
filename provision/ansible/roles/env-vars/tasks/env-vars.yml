@@ -1,0 +1,63 @@
+
+- name: Disable env reset
+  replace: dest=/etc/sudoers  regexp='^\s*Defaults\s*env_reset\s*$' replace='Defaults    !env_reset' backup=yes
+
+- name: Set env vars for all hosts
+  lineinfile:
+    dest: /etc/environment
+    regexp: "^{{ item.var }}="
+    line: "{{item.var}}={{item.val}}"
+  with_items:
+      - { var: 'LC_ALL', val: "en_US.UTF-8" }
+      - { var: 'LC_CTYPE', val: "en_US.UTF-8" }
+      - { var: 'LANGUAGE', val: "en_US.UTF-8" }
+      - { var: 'LC_MESSAGES', val: "POSIX" }
+      - { var: 'GOPATH', val: "$GOPATH:{{base_path}}" }
+      - { var: 'INSTANCE_RELEASE', val: "{{ release  }}" }
+      - { var: 'ENV', val: "{{ env }}" }
+      - { var: 'MAILER_USERNAME', val: "{{ mailer_username }}" }
+      - { var: 'MAILER_PASSWORD', val: "{{ mailer_password }}" }
+  no_log: True
+
+- name: Set env vars for instance
+  lineinfile:
+    dest: /etc/environment
+    regexp: "^{{ item.var }}="
+    line: "{{item.var}}={{item.val}}"
+  with_items:
+      - { var: 'INSTANCE_NAME', val: "{{ instance_name }}" }
+      - { var: 'INSTANCE_COUNT', val: "{{ instance_count }}" }
+      - { var: 'INSTANCE_RELEASE', val: "{{ release  }}" }
+  when: instance_group is defined
+  no_log: True
+
+- name: Set services IPs
+  set_fact:
+    postgresql_host: "{{hostvars[groups['tag_Name_postgres1_'+env][0]]['ec2_private_ip_address']}}"
+    redis_host: "{{hostvars[groups['tag_Name_redis1_'+env][0]]['ec2_private_ip_address']}}"
+    solr_ip: "{{hostvars[groups['tag_Name_solr1_'+env][0]]['ec2_private_ip_address']}}"
+  when: env != "dev"
+  ignore_errors: yes
+
+
+- name: Set env vars for symfony webservers
+  lineinfile:
+    dest: /etc/environment
+    regexp: "^{{ item.var }}="
+    line: "{{item.var}}={{item.val}}"
+  with_items:
+      - { var: 'APP_ENV', val: "{{ env }}" }
+      - { var: 'ENV', val: "{{ env }}" }
+      - { var: 'DEBUG', val: "{{ debug }}" }
+      - { var: 'DATABASE_NAME', val: "{{ postgresql_databases_obj[app_name]['name'] }}" }
+      - { var: 'DATABASE_USER', val: "{{ postgresql_databases_obj[app_name]['user'] }}" }
+      - { var: 'DATABASE_PASSWORD', val: "{{ postgresql_databases_obj[app_name]['password'] }}" }
+      - { var: 'DATABASE_HOST', val: "{{ postgresql_host }}" }
+      - { var: 'REDIS_HOST', val: "{{ redis_host }}" }
+      - { var: 'SOLR_IP', val: "{{ solr_ip }}" }
+  when: instance_group|default("") == "webserver" and ( app_name|default("") == "myproject" )
+  no_log: True
+
+
+
+

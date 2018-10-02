@@ -1,0 +1,58 @@
+
+- name: Terminate EC2 server
+  ec2:
+    region: "{{ aws_region }}"
+    instance_ids: "{{ hostvars[item].ec2_id }}"
+    state: 'absent'
+  with_items: "{{ hostvars }}"
+  when: hostvars[item].ec2_region == aws_region and hostvars[item].ec2_state == "running"
+
+- ec2_group_facts:
+    region: "{{ aws_region }}"
+  register: security_groups
+
+- name: get a nap
+  pause:
+    seconds: 10
+
+- name: Remove security groups rules
+  ec2_group:
+    name: "{{item.group_name}}"
+    description: "{{item.description}}"
+    region: "{{ aws_region }}"
+    vpc_id: "{{ vpc_id }}"
+    purge_rules: True
+    purge_rules_egress: True
+  with_items: "{{security_groups.security_groups}}"
+  ignore_errors: yes
+
+- name: get a nap
+  pause:
+    seconds: 10
+
+- name: Delete security groups
+  ec2_group:
+    name: "{{item.group_name}}"
+    description: "{{item.description}}"
+    region: "{{ aws_region }}"
+    vpc_id: "{{ vpc_id }}"
+    state: absent
+  with_items: "{{security_groups.security_groups}}"
+  when: item.group_name != "default"
+  ignore_errors: yes
+
+- name: Get AMI id
+  ec2_ami_facts:
+    region: "{{ aws_region }}"
+    owners: self
+  delegate_to: 127.0.0.1
+  register: ami_find
+
+- name: Delete AMI
+  ec2_ami:
+    region: "{{ aws_region }}"
+    image_id: "{{ item.image_id }}"
+    delete_snapshot: True
+    state: absent
+  with_items: "{{ami_find.images}}"
+  ignore_errors: yes

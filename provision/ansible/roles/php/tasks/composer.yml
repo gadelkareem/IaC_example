@@ -1,0 +1,15 @@
+
+
+- name: COMPOSER | Check if composer exists
+  stat: path="/usr/bin/composer"
+  register: composerFile
+
+- name: COMPOSER | Install composer
+  shell: curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin
+  when: composerFile.stat.islnk is not defined
+
+- name: COMPOSER | Rename composer.phar
+  shell: mv /usr/bin/composer.phar /usr/bin/composer
+  when: composerFile.stat.islnk is not defined
+
+

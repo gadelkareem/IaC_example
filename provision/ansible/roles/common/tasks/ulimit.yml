@@ -1,0 +1,26 @@
+
+- name: ULIMIT | Bump limits
+  pam_limits:
+    domain: "*"
+    limit_type: '-'
+    limit_item: "{{item}}"
+    use_max: yes
+    value: "{{ulimit_value}}"
+  with_items:
+    - "nproc"
+    - "core"
+    - "memlock"
+    - "nofile"
+    - "stack"
+
+- name: ULIMIT | Systemd limits
+  lineinfile:
+    dest: "{{item}}"
+    state: present
+    line: "DefaultLimitNOFILE={{ulimit_value}}"
+  with_items:
+    - "/etc/systemd/user.conf"
+    - "/etc/systemd/system.conf"
+
+- name: ULIMIT | Set the max open file descriptors
+  sysctl: name=fs.file-max value="{{ulimit_value}}" state=present reload=yes

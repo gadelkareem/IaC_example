@@ -1,0 +1,15 @@
+---
+
+- name: AWS_KEYS | Add AWS access keys to root only
+  lineinfile:
+    dest: /root/.bashrc
+    regexp: "^export {{ item.var }}="
+    line: "export {{item.var}}={{item.val}}"
+  with_items:
+      - { var: 'AWS_ACCESS_KEY_ID', val: "{{ aws_key_id }}" }
+      - { var: 'AWS_SECRET_ACCESS_KEY', val: "{{ aws_secret_key }}" }
+      - { var: 'AWS_DEFAULT_REGION', val: "{{ aws_region }}" }
+      - { var: 'AWS_CONFIG_FILE', val: /root/.aws/config }
+  no_log: True
+
+

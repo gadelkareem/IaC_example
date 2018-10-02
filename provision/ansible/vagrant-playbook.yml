@@ -1,0 +1,70 @@
+
+- hosts: all
+  connection: local
+  become: yes
+  roles:
+    - upgrade
+    - swap-file
+    - common
+  vars_files:
+      - "group_vars/all.yml"
+      - "group_vars/dev/vars.yml"
+
+- hosts: myproject
+  connection: local
+  become: yes
+  roles:
+    - fishshell
+    - hostname
+    - env-vars
+    - php
+    - nginx
+    - nodejs
+    - webserver
+    - init-application
+    - cron
+    - final
+  vars_files:
+  - "group_vars/all.yml"
+  - "group_vars/dev/vars.yml"
+  - "group_vars/dev/myproject-vars.yml"
+  - "roles/webserver/vars/webserver.yml"
+
+- hosts: services
+  connection: local
+  become: yes
+  roles:
+    - hostname
+    - fishshell
+    - env-vars
+    - { role: geerlingguy.java, tags: [ 'java', 'solr' ] }
+    - { role: geerlingguy.solr, tags: [ 'solr' ] }
+    - solr-config
+    - { role: geerlingguy.rabbitmq, tags: ['rabbitmq'] }
+    - { role: ANXS.postgresql, tags: ['postgres'] }
+    - pghero
+    - redis
+    - cron
+    - final
+  vars_files:
+      - "group_vars/all.yml"
+      - "group_vars/dev/vars.yml"
+      - "group_vars/dev/services-vars.yml"
+      - "roles/webserver/vars/webserver.yml"
+
+- hosts: all
+  connection: local
+  become: yes
+  roles:
+    - mail
+    - geerlingguy.mailhog
+  vars_files:
+    - "group_vars/all.yml"
+    - "group_vars/dev/vars.yml"
+
+
+
+
+
+
+

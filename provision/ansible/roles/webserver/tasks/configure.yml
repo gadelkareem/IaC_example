@@ -1,0 +1,42 @@
+
+
+- name: Backup default webserver configs on Vagrant
+  shell: mv {{ item.dest }} {{ item.dest }}.bak.{{ lookup('pipe', 'date +%Y%m%d%H%M%S') }} || true
+  with_items: "{{webserver_config_files}}"
+  when: env == "dev"
+
+- name: Set syslinks to Config files on Vagrant
+  file: src="{{ dev_webserver_config_path }}/{{ item.src }}"
+        dest={{ item.dest }}
+        state=link
+  with_items: "{{webserver_config_files}}"
+  when: env == "dev"
+
+- name: Remove Xdebug Config files on Vagrant
+  file: path={{ item.dest }}
+        state=absent
+  with_items: "{{xdebug_files}}"
+  when: env == "dev"
+
+- name: Set syslinks to Xdebug Config files on Vagrant
+  file: src={{ item.dev_src }}
+        dest={{ item.dest }}
+        state=link
+  with_items: "{{xdebug_files}}"
+  when: env == "dev"
+
+- name: add self-signed cerificate to trusted
+  shell: sudo cp {{ dev_webserver_config_path }}/{{ webserver_config_path }}/{{app_name}}/nginx/ssl/nginx-selfsigned.crt /usr/local/share/ca-certificates/ && sudo update-ca-certificates
+  when: env == "dev"
+
+- name: Set PHP dir permissions
+  file: path=/var/lib/php state=directory owner=www-data group=www-data  recurse=yes
+
+- name: Set session permissions
+  file: path="{{item}}" state=directory owner=www-data group=www-data mode=0770 recurse=yes
+  with_items:
+    - /var/log/php
+    - /var/lib/php/sessions
+
+- name: Add symfony logs to logrotate.d
+  template: src=symfony dest=/etc/logrotate.d/symfony

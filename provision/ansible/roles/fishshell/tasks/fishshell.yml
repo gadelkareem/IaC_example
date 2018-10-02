@@ -1,0 +1,18 @@
+---
+
+- name: Install Fish packages
+  apt: pkg=fish state=latest update_cache=yes
+
+- name: Add fishshell as default shell
+  user: name="{{ item }}" shell=/usr/bin/fish
+  with_items:
+    - "{{ admin_user }}"
+
+- name: Copy functions
+  file: path=~/.config/fish state=directory recurse=yes
+  become_user: "{{admin_user}}"
+
+- name: Copy functions
+  template: src=config.fish dest=~/.config/fish/config.fish
+  become_user: "{{admin_user}}"
+

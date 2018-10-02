@@ -1,0 +1,8 @@
+---
+
+- include: env-vars.yml
+  tags: [ env-vars ]
+
+- include: aws-keys.yml
+  when: env != "dev"
+

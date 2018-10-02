@@ -1,0 +1,20 @@
+<dataConfig>
+    <dataSource driver="org.postgresql.Driver"
+                url="jdbc:postgresql://localhost:5432/myproject"
+                user="solr"
+                password="dev_pass"
+                readOnly="true" autoCommit="false" transactionIsolation="TRANSACTION_READ_COMMITTED"
+                holdability="CLOSE_CURSORS_AT_COMMIT" convertType="true"/>
+    <document>
+        <entity name="mytable"
+                pk="id"
+                query="SELECT id, title, description FROM mytable WHERE deleted_at IS NULL"
+                deltaQuery="SELECT id FROM mytable WHERE updated_at > '${dataimporter.last_index_time}' AND deleted_at IS NULL"
+                deltaImportQuery="SELECT id, title, description FROM mytable WHERE id='${dataimporter.delta.id}'"
+                deletedPkQuery="SELECT id FROM mytable WHERE deleted_at > '${dataimporter.last_index_time}'">
+            <field column="t_uploaded_at" name="uploaded_at"/>
+            <field column="t_updated_at" name="updated_at"/>
+            <field column="t_created_at" name="created_at"/>
+        </entity>
+    </document>
+</dataConfig>

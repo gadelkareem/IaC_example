@@ -1,0 +1,195 @@
+
+#################################################################provision ubuntu AMI
+- name: Create ubuntu Instance
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  roles:
+    - aws-default-security-group
+    - { role: aws-instance, type: 'ubuntu' }
+  vars_files:
+    - "group_vars/{{env}}/vars-encrypted.yml"
+  tags: [never,ubuntu-ami,ubuntu-instance]
+
+- name: Provision ubuntu AMI
+  hosts: "tag_Name_ami_ubuntu_{{env}}_{{release}}"
+  gather_facts: False
+  user: ubuntu
+  become: yes
+  handlers:
+    - include: handlers/handlers.yml
+  roles:
+    - swap-file
+    - upgrade
+    - common
+    - aws-tools
+    - mail
+    - final
+    - { role: aws-create-ami, type: 'ubuntu' }
+  vars_files:
+    - "group_vars/{{env}}/vars-encrypted.yml"
+    - "group_vars/{{env}}/ubuntu-vars-encrypted.yml"
+  tags: [never,ubuntu-ami,ubuntu-provision]
+
+#################################################################infrasctucture
+- name: Provision infrastructure
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  user: ubuntu
+  become: yes
+  roles:
+    - aws-default-security-group
+    - aws-infrastructure
+  vars_files:
+    - "group_vars/{{env}}/ubuntu-vars-encrypted.yml"
+    - "group_vars/{{env}}/vars-encrypted.yml"
+  tags: [never,infrastructure]
+
+################################################################# provision solr
+- name: Provision solr
+  hosts: "tag_Name_solr1_{{env}}"
+  gather_facts: False
+  user: ubuntu
+  become: yes
+  handlers:
+    - include: handlers/handlers.yml
+  pre_tasks:
+    - setup: gather_subset=all
+  vars:
+    swapfile_size: 5000MB
+  roles:
+    - swap-file
+    - env-vars
+    - mail
+    - geerlingguy.java
+    - geerlingguy.solr
+    - solr-config
+    - cron
+    - final
+  vars_files:
+    - "group_vars/{{env}}/common-encrypted.yml"
+    - "group_vars/{{env}}/vars-encrypted.yml"
+  tags: [never,solr-provision]
+
+################################################################ provision redis
+- name: Provision redis
+  hosts: "tag_Name_redis1_{{env}}"
+  gather_facts: False
+  user: ubuntu
+  become: yes
+  pre_tasks:
+    - setup: gather_subset=all
+  vars:
+    swapfile_size: 2000MB
+  handlers:
+    - include: handlers/handlers.yml
+  roles:
+    - swap-file
+    - redis
+  vars_files:
+    - "group_vars/{{env}}/vars-encrypted.yml"
+  tags: [never,redis-provision]
+
+################################################################## provision postgreSQL
+- name: Provision postgres
+  hosts: "tag_Name_postgres1_{{env}}"
+  gather_facts: False
+  user: ubuntu
+  become: yes
+  pre_tasks:
+    - setup: gather_subset=all
+  vars:
+    swapfile_size: 4000MB
+  handlers:
+    - include: handlers/handlers.yml
+  roles:
+    - swap-file
+    - env-vars
+    - mail
+    - { role: ANXS.postgresql }
+    - pghero
+    - { role: cron , app_type: postgres }
+  vars_files:
+    - "group_vars/{{env}}/common-encrypted.yml"
+    - "group_vars/{{env}}/vars-encrypted.yml"
+  tags: [never,postgres-provision]
+
+################################################################init webserver instance
+- name: Provision webserver
+  hosts: "tag_Name_{{app_name}}_webserver_{{env}}_{{release}}"
+  gather_facts: False
+  user: ubuntu
+  become: yes
+  handlers:
+    - include: handlers/handlers.yml
+  roles:
+    - env-vars
+    - cron
+    - php
+    - nodejs
+    - webserver
+    - final
+  vars_files:
+    - "group_vars/{{env}}/common-encrypted.yml"
+    - "group_vars/{{env}}/{{app_name}}-vars-encrypted.yml"
+    - "group_vars/{{env}}/vars-encrypted.yml"
+    - "roles/webserver/vars/webserver.yml"
+  tags: [never,webserver-init]
+
+################################################################Deploy
+- name: Build artifact
+  hosts: localhost
+  connection: local
+  roles:
+    - build-artifact
+  vars_files:
+    - "group_vars/{{env}}/{{app_name}}-vars-encrypted.yml"
+    - "group_vars/{{env}}/vars-encrypted.yml"
+  tags: [never,artifact]
+
+- name: Deploy webserver
+  hosts: "tag_Name_{{app_name}}_webserver_{{env}}_{{release}}"
+  gather_facts: False
+  user: ubuntu
+  become: yes
+  handlers:
+    - include: handlers/handlers.yml
+  roles:
+    - cron
+  vars_files:
+    - "group_vars/{{env}}/common-encrypted.yml"
+    - "group_vars/{{env}}/{{app_name}}-vars-encrypted.yml"
+    - "group_vars/{{env}}/vars-encrypted.yml"
+    - "roles/webserver/vars/webserver.yml"
+  tags: [never,provision]
+
+- name: Deploy solr
+  hosts: "tag_Name_{{app_name}}_webserver_{{env}}_{{release}}"
+  gather_facts: False
+  user: ubuntu
+  become: yes
+  handlers:
+    - include: handlers/handlers.yml
+  vars:
+      deploy_only: True
+  roles:
+    - env-vars
+    - solr-config
+  vars_files:
+    - "group_vars/{{env}}/common-encrypted.yml"
+    - "group_vars/{{env}}/vars-encrypted.yml"
+  tags: [never,provision]
+
+################################################################Tear Down
+- name: Tear Down
+  hosts: localhost
+  connection: local
+  gather_facts: False
+  roles:
+    - { role: aws-teardown, app_name: 'myproject' }
+  vars_files:
+    - "group_vars/{{env}}/common-encrypted.yml"
+    - "group_vars/{{env}}/vars-encrypted.yml"
+    - "roles/webserver/vars/webserver.yml"
+  tags: [never,teardown]

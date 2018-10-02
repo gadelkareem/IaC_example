@@ -1,0 +1,4 @@
+
+- include: config-myproject.yml
+  tags: [ init-application, config-app ]
+  when: app_name|default("") == "myproject"

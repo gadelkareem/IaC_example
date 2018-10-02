@@ -1,0 +1,3 @@
+www-data  {{ app_name }}@example.com
+root  {{ app_name }}@example.com
+ubuntu  {{ app_name }}@example.com

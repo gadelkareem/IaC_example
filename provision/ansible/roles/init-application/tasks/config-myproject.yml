@@ -1,0 +1,21 @@
+---
+
+
+- name: Runing composer and preparing DB
+  become: no
+  shell: cd {{ base_path }}/sites/example.com && composer install && composer --dev update
+  environment:
+          APP_ENV: "{{ symfony_env }}"
+          DATABASE_NAME: "{{ databases['myproject']['name'] }}"
+          DATABASE_USER: "{{ databases['myproject']['user'] }}"
+          DATABASE_PASSWORD: "{{ databases['myproject']['password'] }}"
+          DATABASE_HOST: "{{ database_host }}"
+  ignore_errors: yes
+
+
+- name: Install NPM packages
+  npm:
+      path: "{{ base_path }}"
+      state: latest
+
+

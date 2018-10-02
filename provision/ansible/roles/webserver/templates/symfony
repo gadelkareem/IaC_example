@@ -1,0 +1,10 @@
+{{ base_path }}/sites/example.com/var/logs/*.log {
+	rotate 12
+	daily
+	missingok
+	notifempty
+	compress
+	create 664 www-data www-data
+	su www-data www-data
+}
+

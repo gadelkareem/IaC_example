@@ -1,0 +1,3 @@
+
+- include: nftables.yml
+  tags: [ firewall ]

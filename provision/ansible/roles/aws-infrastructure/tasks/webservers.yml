@@ -1,0 +1,111 @@
+
+- name: set vars
+  set_fact:
+    ami_name: "webserver_{{env}}_{{release}}"
+
+- name: Get AMI id
+  ec2_ami_facts:
+    region: "{{ aws_region }}"
+    owners: self
+    filters:
+      name:  "ubuntu18"
+  delegate_to: 127.0.0.1
+  register: ami_find
+
+- name: Create Webserver security group
+  ec2_group:
+    name: "{{app_name}}_webserver_{{env}}"
+    description: "{{app_name}} webserver security group"
+    region: "{{ aws_region }}"
+    vpc_id: "{{ vpc_id }}"
+    purge_rules: False
+    purge_rules_egress: False
+    rules:
+      - proto: all
+        group_name: "general_{{env}}"
+    rules_egress:
+      - proto: tcp
+        from_port: 80
+        to_port: 80
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp #gpg keyserver
+        from_port: 11371
+        to_port: 11371
+        cidr_ip: 0.0.0.0/0
+      - proto: udp #ntp
+        from_port: 123
+        to_port: 123
+        cidr_ip: 0.0.0.0/0
+      - proto: all
+        group_name: "general_{{env}}"
+      - proto: tcp #mailserver
+        from_port: 2525
+        to_port: 2525
+        cidr_ip: 0.0.0.0/0
+
+- name: Start a set of webserver instances
+  ec2:
+     keypair:  "{{ key_name }}"
+     group: "{{app_name}}_webserver_{{env}}"
+     instance_type: "{{ instance_type.webserver[app_name] }}"
+     region: "{{ aws_region }}"
+     zone: "{{ item.1 }}"
+     image: "{{ image_id }}"
+     wait: true
+     exact_count: "{{ webserver_count }}"
+     count_tag:
+        Name: "{{app_name}}_webserver_{{env}}_{{release}}"
+     instance_tags:
+        Group: "{{app_name}}_webserver_{{env}}"
+        Name: "{{app_name}}_webserver_{{env}}_{{release}}"
+        Env: "{{env}}"
+        Release: "{{release}}"
+        Count: "{{app_name}}_webserver_{{env}}_count_{{ item.0 + 1 }}"
+        CountIndex: "{{ item.0 + 1 }}"
+     volumes:
+         - "{{instance_volume}}"
+  register: webservers
+  with_indexed_items: "{{aws_zones}}"
+
+- name: Modify security group for webserver
+  ec2_group:
+    name: "general_{{env}}"
+    description: "General security group"
+    region: "{{ aws_region }}"
+    vpc_id: "{{ vpc_id }}"
+    purge_rules: False
+    purge_rules_egress: False
+    rules:
+      - proto: all
+        group_name: "{{app_name}}_webserver_{{env}}"
+    rules_egress:
+      - proto: all
+        group_name: "{{app_name}}_webserver_{{env}}"
+
+
+- name: Add host to known_hosts
+  shell: mkdir -p ~/.ssh && touch ~/.ssh/known_hosts && ssh-keygen -R {{item.public_ip}} && ssh-keyscan  -t rsa {{item.public_ip}}  >> ~/.ssh/known_hosts
+  with_items: "{{ webservers.results[0].tagged_instances }}"
+
+- name: Add host to known_hosts
+  shell: mkdir -p ~/.ssh && touch ~/.ssh/known_hosts && ssh-keygen -R {{item.public_ip}} && ssh-keyscan  -t rsa {{item.public_ip}}  >> ~/.ssh/known_hosts
+  with_items: "{{ webservers.results[0].tagged_instances }}"
+  when: groups['tag_Name_'+app_name+'_webserver_'+env+'_'+release] is not defined
+
+- name: Add instance public IP to launched groupname
+  add_host:
+     name: "{{item.public_ip}}"
+     hostname: "{{item.public_ip}}"
+     groups: "tag_Name_{{app_name}}_webserver_{{env}}_{{release}}"
+     ec2_id: "{{ item.id }}"
+     ec2_tag_Name: "{{app_name}}_webserver_{{env}}_{{release}}"
+     ec2_tag_Env: "{{env}}"
+     ec2_tag_Count: "{{app_name}}_webserver_{{env}}_count_1"
+     ec2_tag_CountIndex: "1"
+     ec2_tag_Release: "{{release}}"
+  with_items: "{{webservers.results[0].tagged_instances}}"
+  when: groups['tag_Name_'+app_name+'_webserver_'+env+'_'+release] is not defined

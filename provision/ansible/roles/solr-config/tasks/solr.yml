@@ -1,0 +1,40 @@
+
+
+- name: Fix Solr permissions
+  file: path="{{solr_install_path}}/server" state=directory owner=solr
+
+- name: Stop Solr
+  service: name=solr state=stopped enabled=no
+
+- name: Remove solr init.d file
+  file: path=/etc/init.d/solr
+        state=absent
+
+- name: Copy solr service
+  template:
+    src: "service.j2"
+    dest: "/lib/systemd/system/solr.service"
+    owner: solr
+    mode: 0755
+
+- name: Enable solr service
+  systemd:
+    name: "solr"
+    enabled: yes
+    masked: no
+    daemon_reload: yes
+    state: restarted
+
+- name: make sure daemon is reloaded (ansible bug)
+  shell: systemctl daemon-reload
+
+- name: Restart Solr
+  service: name=solr state=restarted enabled=yes
+
+- name: Delete test cores
+  shell: "{{solr_install_path}}/bin/solr delete -c {{item}}"
+  become: solr
+  with_items:
+    - collection1
+    - test
+  ignore_errors: yes

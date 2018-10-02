@@ -1,0 +1,69 @@
+
+
+- name: PostgreSQL | Install psycopg2 locally
+  pip:
+      name: psycopg2-binary
+      state: latest
+  delegate_to: 127.0.0.1
+
+- name: set postgresql_host
+  set_fact:
+    postgresql_host: "{{hostvars[groups['postgres1-'+env][0]].ansible_host}}"
+
+- name: PostgreSQL | Make sure the PostgreSQL databases are present
+  postgresql_db:
+    name: "{{item.name}}"
+    encoding: 'UTF-8'
+    lc_collate: 'en_US.UTF-8'
+    lc_ctype: 'en_US.UTF-8'
+    port: 5432
+    template: "{{postgresql_admin_user}}"
+    state: present
+    login_host: "{{ postgresql_host }}"
+    login_user: "{{postgresql_admin_user}}"
+    login_password: "{{ postgresql_admin_password }}"
+  delegate_to: 127.0.0.1
+  with_items: "{{postgresql_databases}}"
+  no_log: True
+
+- name: PostgreSQL | Make sure the PostgreSQL users are present
+  postgresql_user:
+    name: "{{item.name}}"
+    password: "{{ item.pass }}"
+    encrypted: yes
+    port: 5432
+    state: present
+    login_host: "{{ postgresql_host }}"
+    login_user: "{{postgresql_admin_user}}"
+    login_password: "{{ postgresql_admin_password }}"
+  with_items: "{{postgresql_users}}"
+  delegate_to: 127.0.0.1
+  no_log: True
+
+- name: PostgreSQL | Update the user privileges
+  postgresql_user:
+    name: "{{item.name}}"
+    db: "{{item.db}}"
+    priv: "{{item.priv}}"
+    role_attr_flags: "{{item.role_attr_flags | default(omit)}}"
+    port: 5432
+    state: present
+    login_host: "{{ postgresql_host }}"
+    login_user: "{{postgresql_admin_user}}"
+    login_password: "{{ postgresql_admin_password }}"
+  with_items: "{{postgresql_user_privileges}}"
+  delegate_to: 127.0.0.1
+  no_log: True
+
+- name: PostgreSQL | Update databases owners
+  postgresql_db:
+    name: "{{item.name}}"
+    owner: "{{item.owner}}"
+    state: present
+    port: 5432
+    login_host: "{{ postgresql_host }}"
+    login_user: "{{postgresql_admin_user}}"
+    login_password: "{{ postgresql_admin_password }}"
+  delegate_to: 127.0.0.1
+  with_items: "{{postgresql_databases}}"
+  no_log: True

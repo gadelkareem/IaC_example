@@ -1,0 +1,10 @@
+---
+
+- include: solr.yml
+  when: deploy_only is not defined
+  tags: [ solr-config ]
+
+- include: solr-config-myproject.yml
+  when: deploy_only is not defined
+  tags: [ solr-config ]
+

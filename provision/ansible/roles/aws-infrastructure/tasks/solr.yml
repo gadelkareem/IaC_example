@@ -1,0 +1,62 @@
+
+#####provision web servers
+- name: Get AMI id
+  ec2_ami_facts:
+    region: "{{ aws_region }}"
+    owners: self
+    filters:
+      name:  "ubuntu18"
+  delegate_to: 127.0.0.1
+  register: ami_find
+
+- name: Start a set of solr instances
+  ec2:
+     keypair:  "{{ key_name }}"
+     group: "general_{{env}}"
+     instance_type: "{{ instance_type.solr }}"
+     region: "{{ aws_region }}"
+     zone: "{{ item.1 }}"
+     image: "{{ image_id }}"
+     wait: true
+     exact_count: "{{ solr_count }}"
+     count_tag:
+        Name: "solr1_{{env}}"
+     instance_tags:
+        Group: "solr1_{{env}}"
+        Name: "solr1_{{env}}"
+        Env: "{{env}}"
+        Release: "{{release}}"
+        Count: "solr1_{{env}}_count_{{ item.0 + 1 }}"
+        CountIndex: "{{ item.0 + 1 }}"
+     volumes:
+         - device_name: /dev/sda1
+           volume_type: gp2
+           volume_size: 20
+           delete_on_termination: true
+  register: solr
+  with_indexed_items: "{{aws_zones}}"
+
+- name: Add host to known_hosts
+  shell: mkdir -p ~/.ssh && touch ~/.ssh/known_hosts && ssh-keygen -R {{item.public_ip}} && ssh-keyscan  -t rsa {{item.public_ip}}  >> ~/.ssh/known_hosts
+  with_items: "{{ solr.results[0].tagged_instances }}"
+
+
+- name: Add host to known_hosts
+  shell: mkdir -p ~/.ssh && touch ~/.ssh/known_hosts && ssh-keygen -R {{item.public_ip}} && ssh-keyscan  -t rsa {{item.public_ip}}  >> ~/.ssh/known_hosts
+  with_items: "{{ solr.results[0].tagged_instances }}"
+  when: groups['tag_Name_solr1_'+env+'_'+release] is not defined
+
+- name: Add instance public IP to launched groupname
+  add_host:
+     name: "{{item.public_ip}}"
+     hostname: "{{item.public_ip}}"
+     groups: "tag_Name_solr1_{{env}}"
+     ec2_id: "{{ item.id }}"
+     ec2_tag_Name: "solr1_{{env}}"
+     ec2_tag_Env: "{{env}}"
+     ec2_tag_Count: "solr1_{{env}}_count_1"
+     ec2_tag_CountIndex: "1"
+     ec2_tag_Release: "{{release}}"
+  with_items: "{{solr.results[0].tagged_instances}}"
+  when: groups['tag_Name_solr1_'+env+'_'+release] is not defined
+

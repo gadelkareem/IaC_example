@@ -1,0 +1,6 @@
+
+- include: myproject.yml
+  when: app_name|default("") == "myproject" and app_type|default("") != "postgres"
+
+- include: postgres.yml
+  when: app_type|default("") == "postgres" and env != "dev"

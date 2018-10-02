@@ -1,0 +1,4 @@
+
+- include: cron.yml
+  tags: [ webserver, cron ]
+  when:  env == "dev" or hostvars[inventory_hostname].ec2_tag_CountIndex == "1"

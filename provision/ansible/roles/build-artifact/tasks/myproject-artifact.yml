@@ -1,0 +1,41 @@
+
+
+- name: Kill console processes
+  shell: kill -9 `pgrep -f ./console`
+  ignore_errors: yes
+
+- name: Clean dev directories
+  shell: "rm -rf {{app_path}}/{{myitem}}"
+  with_items:
+    - "var/cache"
+    - "var/bootstrap.php.cache"
+  loop_control:
+    loop_var: myitem
+
+- name: Building artifact
+  become_user: "{{admin_user}}"
+  shell: cd {{ app_path }} && {{myitem}}
+  environment:
+    APP_ENV: "{{env}}"
+    APP_DEBUG: "false"
+  with_items:
+    - npm install
+    - composer install --no-dev
+    - composer dump-autoload --optimize --no-dev --classmap-authoritative
+  loop_control:
+    loop_var: myitem
+
+- name: Tar artifact
+  shell: tar --warning=no-file-changed -cjf "{{ base_path }}/builds/{{env}}/{{build_file}}" \
+      --exclude=sites/example.com/var/cache \
+      --exclude=sites/example.com/var/bootstrap.php.cache \
+      --exclude=sites/example.com/web/img_original \
+      --exclude=sites/example.com/tests \
+      -C "{{ base_path }}"  \
+      sites/example.com \
+      provision/ansible/roles/webserver/files \
+      provision/tools \
+      secure \
+      || [[ $? -eq 1 ]]
+
+

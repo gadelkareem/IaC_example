@@ -1,0 +1,4 @@
+---
+
+  - include: create-ami.yml
+    tags: [ create-ami ]

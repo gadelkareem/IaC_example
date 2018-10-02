@@ -1,0 +1,6 @@
+
+- include: aws-cli.yml
+  tags: [aws-tools]
+
+- include: s3cmd.yml
+  tags: [s3]

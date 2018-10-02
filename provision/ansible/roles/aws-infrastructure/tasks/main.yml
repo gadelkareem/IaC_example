@@ -1,0 +1,28 @@
+
+
+- name: Get AMI id
+  ec2_ami_facts:
+    region: "{{ aws_region }}"
+    owners: self
+    filters:
+      name:  "ubuntu18"
+  delegate_to: 127.0.0.1
+  register: ami_find
+
+- include: postgres.yml image_id="{{ami_find.images[0].image_id}}"
+  when: only_app_name is not defined or only_app_name == "postgres"
+  tags: [postgres]
+
+- include: redis.yml image_id="{{ami_find.images[0].image_id}}"
+  when: only_app_name is not defined or only_app_name == "redis"
+  tags: [redis]
+
+- include: solr.yml image_id="{{ami_find.images[0].image_id}}"
+  when: only_app_name is not defined or only_app_name == "solr"
+  tags: [services-instances]
+
+- include: webservers.yml image_id="{{ami_find.images[0].image_id}}"
+  when: only_app_name is not defined or only_app_name == "myproject"
+  tags: [webservers-instances]
+
+

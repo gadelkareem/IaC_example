@@ -1,0 +1,20 @@
+
+
+- name: Copy db backup script.
+  template:
+    src: postgresql-backup.sh
+    dest: /root/postgresql-backup.sh
+    owner: root
+    group: root
+    mode: 0655
+
+- name: Add Postgresql backup cron
+  cron:
+    name: postgresql_backup
+    minute: "30"
+    hour: "6"
+    day: "*/1"
+    user: root
+    job: "/usr/bin/flock -w 0 -E 0 /tmp/postgres-backup.lock /root/postgresql-backup.sh > /dev/null"
+    cron_file: postgresql_backup
+

@@ -1,0 +1,44 @@
+---
+
+- name: ec2 key
+  ec2_key:
+    name: mykey
+    key_material: "{{ssh_key}}"
+    state: present
+    region: "{{ aws_region }}"
+
+- name: Create general security group
+  ec2_group:
+    name: "general_{{env}}"
+    description: "General {{env}} security group"
+    region: "{{ aws_region }}"
+    vpc_id: "{{ vpc_id }}"
+    purge_rules: False
+    purge_rules_egress: False
+    rules:
+      - proto: tcp
+        from_port: 22
+        to_port: 22
+        cidr_ip: 0.0.0.0/0
+    rules_egress:
+      - proto: tcp
+        from_port: 80
+        to_port: 80
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp
+        from_port: 443
+        to_port: 443
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp #gpg keyserver
+        from_port: 11371
+        to_port: 11371
+        cidr_ip: 0.0.0.0/0
+      - proto: udp #ntp
+        from_port: 123
+        to_port: 123
+        cidr_ip: 0.0.0.0/0
+      - proto: tcp #mailserver
+        from_port: 2525
+        to_port: 2525
+        cidr_ip: 0.0.0.0/0
+

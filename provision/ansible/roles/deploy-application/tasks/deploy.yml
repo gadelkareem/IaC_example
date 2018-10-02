@@ -1,0 +1,16 @@
+
+- name: Create deploy directory
+  file: path=/var/deploy state=directory
+
+- name: copy deploy.sh
+  copy: src="{{app_name}}/deploy.sh"
+        dest=/var/deploy/deploy.sh
+
+- name: configure deploy.sh
+  shell: chmod +x /var/deploy/deploy.sh
+  warn: False
+
+- name: Deploy application
+  shell: sudo -i /var/deploy/deploy.sh {{ build_number }} >> /var/log/deploy.log 2>&1 ||  ( cat /var/log/deploy.log && false )
+  warn: False
+

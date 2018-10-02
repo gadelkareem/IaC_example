@@ -1,0 +1,26 @@
+
+- name: install nftables
+  apt: pkg=nftables state=present
+
+- name: set nftables template
+  set_fact:
+    template: nftables.conf
+
+- name: Copy firewall.rules
+  template: src="{{template}}" dest=/etc/nftables.conf backup=yes
+
+
+- name: Start nftables service
+  service: name=nftables state=restarted enabled=yes use=service
+  ignore_errors: yes
+
+- name: Add nftables rules on boot cron
+  cron:
+      name: nftables
+      special_time: reboot
+      user: root
+      job: nft -f  /etc/nftables/firewall.rules
+      cron_file: nftables
+
+
+

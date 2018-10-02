@@ -1,0 +1,31 @@
+---
+
+- name: update apt-cache if needed
+  apt: update_cache=yes
+
+- name: Upgrade all packages to the latest version
+  apt: update_cache=yes upgrade=dist
+
+- name: Check if a reboot is required
+  register: file
+  stat: path=/var/run/reboot-required get_md5=no
+
+- name: Check if vagrant require reloading
+  fail: msg="Please reload vagrant then run provisions again 'vagrant reload'"
+  when: file.stat.exists == true and env == "dev"
+
+- name: Reboot the server
+  shell: sleep 2 && shutdown -r now "Ansible updates triggered"
+  async: 1
+  poll: 0
+  become: true
+  when: file.stat.exists == true and env != "dev"
+
+- name: Wait for webservers SSH to come up
+  local_action: wait_for host={{  hostvars[inventory_hostname].ec2_ip_address }} port=22 delay=10 timeout=640 state=started
+  when: file.stat.exists == true and env != "dev" and hostvars[inventory_hostname] is defined and hostvars[inventory_hostname].ec2_ip_address is defined
+
+- name: Time for a restart
+  fail: msg="REEEBOOOOT!"
+  when: file.stat.exists == true and env != "dev" and hostvars is not defined
+

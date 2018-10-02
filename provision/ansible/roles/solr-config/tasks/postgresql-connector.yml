@@ -1,0 +1,25 @@
+---
+
+
+- stat: path="{{solr_install_path}}/contrib/dataimporthandler/lib/postgresql-42.2.2.jar"
+  register: installed_jar
+
+- name: Download postgres connector
+  get_url: url=https://jdbc.postgresql.org/download/postgresql-42.2.2.jar
+           dest=/tmp/postgresql-42.2.2.jar
+  retries: 3
+  when: installed_jar.stat.exists == False
+
+- name: Create Solr connectors dir
+  file: path="{{solr_install_path}}/contrib/dataimporthandler/lib" state=directory owner=solr group=solr
+  when: installed_jar.stat.exists == False
+
+- name: Install postgres connector in Solr
+  command: "creates={{solr_install_path}}/contrib/dataimporthandler/lib/postgresql-42.2.2.jar mv /tmp/postgresql-42.2.2.jar {{solr_install_path}}/contrib/dataimporthandler/lib/"
+  when: installed_jar.stat.exists == False
+
+- name: Create Solr connectors dir
+  file: path="{{solr_install_path}}/contrib/dataimporthandler/lib" state=directory owner=solr group=solr
+  when: installed_jar.stat.exists == False
+
+

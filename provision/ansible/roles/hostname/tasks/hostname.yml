@@ -1,0 +1,8 @@
+---
+
+- name: Set hostname
+  hostname: name={{linux_hostname}}
+
+- name: Build hosts file
+  lineinfile: dest=/etc/hosts line='{{ instance_ip }} {{ hostname }} {{ linux_hostname }}' state=present backup=yes
+

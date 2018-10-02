@@ -1,0 +1,52 @@
+
+
+- name: set vars
+  set_fact:
+    instance_name: "{{type}}_{{env}}_{{release}}"
+  when: type != "ubuntu"
+
+- name: Get AMI id
+  ec2_ami_facts:
+    region: "{{ aws_region }}"
+    owners: self
+    filters:
+      name:  "{{instance_name}}"
+  delegate_to: 127.0.0.1
+  register: ami_find
+
+- name: Delete AMI
+  ec2_ami:
+    region: "{{ aws_region }}"
+    image_id: "{{ ami_find.images[0].image_id }}"
+    delete_snapshot: True
+    state: absent
+    wait: yes
+  delegate_to: 127.0.0.1
+  when: ami_find.images[0] is defined
+
+- name: Create AMI
+  ec2_ami:
+    region: "{{ aws_region }}"
+    instance_id: "{{ hostvars[inventory_hostname].ec2_id }}"
+    name: "{{ instance_name }}"
+    tags:
+      Env: "{{env}}"
+      Release: "{{release}}"
+    wait: "yes"
+    wait_timeout: 900
+  delegate_to: 127.0.0.1
+
+- name: Terminate instance that was previously launched
+  ec2:
+    state: absent
+    region: "{{ aws_region }}"
+    instance_ids: "{{ hostvars[inventory_hostname].ec2_id }}"
+  delegate_to: localhost
+
+- name: Disble Handlers
+  set_fact:
+    handlers_enabled: false
+    solr_restart_handler_enabled: false
+
+
+

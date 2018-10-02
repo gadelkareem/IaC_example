@@ -1,0 +1,13 @@
+
+- name: install s3cmd
+  pip:
+    name: s3cmd
+    state: latest
+
+- name: configure s3cmd for root
+  template:
+    src: "{{item.src}}"
+    dest: "{{item.dest}}"
+  with_items:
+      - { src: .s3cfg.j2 , dest: /root/.s3cfg }
+  when: env != "dev"

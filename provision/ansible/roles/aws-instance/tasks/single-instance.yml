@@ -1,0 +1,68 @@
+
+- name: Get AMI id
+  ec2_ami_facts:
+    region: "{{ aws_region }}"
+    owners: self
+    filters:
+      name:  "ubuntu18"
+  delegate_to: 127.0.0.1
+  register: ami_find
+
+- name: set vars
+  set_fact:
+    base_ami_id: "{{ ami_find.images[0].image_id }}"
+    user_data: ""
+  when: type != "ubuntu"
+
+- name: set vars
+  set_fact:
+    user_data: |
+        #!/bin/bash
+        apt-get update
+        apt-get install -y python-simplejson
+  when: type == "ubuntu"
+
+- name: Create instance
+  ec2:
+     keypair: "{{ key_name }}"
+     group: "general_{{env}}"
+     instance_type: "t2.nano"
+     region: "{{ aws_region }}"
+     image: "{{ base_ami_id }}"
+     wait: true
+     exact_count: 1
+     count_tag:
+        Name: "ami_{{type}}_{{env}}_{{release}}"
+     instance_tags:
+        Name: "ami_{{type}}_{{env}}_{{release}}"
+     user_data: "{{user_data}}"
+  register: instance
+
+- name: Wait for SSH to come up
+  wait_for: host="{{item.public_ip}}" port=22 delay=10 timeout=640 state=started
+  with_items: "{{ instance.tagged_instances }}"
+  when: groups['tag_Name_ami_'+type+'_'+env+'_'+release] is not defined
+
+- name: Add host to known_hosts
+  shell: mkdir -p ~/.ssh && touch ~/.ssh/known_hosts && ssh-keygen -R {{item.public_ip}} && ssh-keyscan  -t rsa {{item.public_ip}}  >> ~/.ssh/known_hosts
+  with_items: "{{ instance.tagged_instances }}"
+  when: groups['tag_Name_ami_'+type+'_'+env+'_'+release] is not defined
+
+- name: get a nap
+  pause:
+    seconds: 20
+  when: groups['tag_Name_ami_'+type+'_'+env+'_'+release] is not defined
+
+
+- name: Add instance public IP to launched groupname
+  add_host:
+     name: "{{item.public_ip}}"
+     hostname: "{{item.public_ip}}"
+     groups: "tag_Name_ami_{{type}}_{{env}}_{{release}}"
+     ec2_id: "{{ item.id }}"
+     ec2_tag_Name: "ami_{{type}}_{{env}}_{{release}}"
+     ec2_tag_Env: "{{env}}"
+     ec2_tag_CountIndex: "1"
+     ec2_tag_Release: "{{release}}"
+  with_items: "{{instance.tagged_instances}}"
+  when: groups['tag_Name_ami_'+type+'_'+env+'_'+release] is not defined

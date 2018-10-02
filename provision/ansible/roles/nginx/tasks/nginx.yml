@@ -1,0 +1,21 @@
+
+- name: Adding existing user to group www-data
+  user: name="{{ admin_user }}"
+    groups=www-data
+    append=yes
+
+- name: Updating apt cache
+  apt:
+    update_cache: yes
+
+- name: Install Nginx
+  apt: pkg=nginx state=latest update_cache=yes
+
+- name: Remove Nginx default site
+  file: path=/etc/nginx/sites-enabled/default
+        state=absent
+
+- name: stop Nginx
+  service: name=nginx state=stopped enabled=yes
+  ignore_errors: yes
+

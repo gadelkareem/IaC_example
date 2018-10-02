@@ -1,0 +1,71 @@
+---
+
+release: 1
+
+env: dev
+debug: 1
+symfony_env: dev
+symfony_debug: 1
+users:
+    - vagrant
+    - root
+admin_user: vagrant
+
+env_libs:
+    - siege
+    - git-core
+    - htop
+    - python-pip
+
+
+redis_port: 6379
+redis_bind: 0.0.0.0
+
+mailer_username: null
+mailer_password: null
+
+ssh_port: 22
+
+swapfile_location: /swapfile
+swapfile_size: 10000MB
+swapfile_swappiness: False
+swapfile_vfs_cache_pressure: False
+swapfile_use_dd: False
+
+
+postgresql_databases:
+  - owner: myproject
+    name: myproject
+  - owner: myproject_test
+    name: myproject_test
+
+solr_user_password: dev_password
+myproject_user_password: dev_password
+postgresql_users:
+  - name: solr
+    pass: "{{solr_user_password}}"
+    encrypted: yes
+  - name: myproject
+    pass: "{{myproject_user_password}}"
+    encrypted: yes
+  - name: myproject_test
+    pass: "{{myproject_user_password}}"
+    encrypted: yes
+
+postgresql_user_privileges:
+  - name: solr
+    db: myproject
+    priv: "CONNECT"
+  - name: myproject
+    db: myproject
+    priv: "CONNECT"
+  - name: myproject_test
+    db: myproject_test
+    priv: "CONNECT"
+
+postgresql_databases_obj:
+  myproject:
+    user: myproject
+    name: myproject
+    password: "{{myproject_user_password}}"
+

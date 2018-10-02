@@ -1,0 +1,67 @@
+
+- name: get machine hostname
+  command: hostname
+  register: machine_hostname
+  when: hostname is not defined
+
+- set_fact:
+    hostname: machine_hostname.stdout
+  when: machine_hostname.stdout is defined
+
+- name: check if /etc/mailname exists
+  stat: path=/etc/mailname
+  register: p
+
+- name: create /etc/mailname
+  copy:
+    content: "{{hostname}}"
+    dest: /etc/mailname
+    mode: 0644
+  when: p.stat.exists is defined and not p.stat.exists
+
+- name: install mailutils packages
+  apt: pkg=mailutils state=latest update_cache=yes
+  become: yes
+
+- name: Remove sendmail
+  apt: pkg=sendmail state=absent update_cache=yes
+
+- name: copy aliases
+  copy: src=aliases dest=/etc/aliases
+
+- name: compile aliases
+  shell: newaliases
+
+- name: Install Postfix
+  apt: pkg=postfix state=latest update_cache=yes
+
+- name: Configuring Postfix
+  template:
+    src: main.cf.j2
+    dest: /etc/postfix/main.cf
+    mode: 0644
+    backup: no
+
+- name: Add smtp credentials to Postfix
+  template:
+    src: "{{item}}"
+    dest: "/etc/postfix/{{item}}"
+    mode: 0644
+    backup: no
+  with_items:
+    - sasl_passwd
+    - virtual
+    - generic
+  when: env == "prod"
+
+- name: ensure sasl_password is compiled
+  shell: "postmap /etc/postfix/{{item}}"
+  with_items:
+    - sasl_passwd
+    - virtual
+    - generic
+  when: env == "prod"
+
+- name: Ensure postfix is enabled and will start on boot.
+  service: name=postfix state=restarted enabled=yes
+

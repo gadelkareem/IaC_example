@@ -1,0 +1,11 @@
+
+[default]
+region={{aws_region}}
+output=json
+
+s3 =
+  max_concurrent_requests = 200
+  max_queue_size = 10000
+  multipart_threshold = 640MB
+  multipart_chunksize = 160MB
+  max_bandwidth = 1000MB/s

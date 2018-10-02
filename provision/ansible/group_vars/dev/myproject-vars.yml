@@ -1,0 +1,19 @@
+
+app_name: myproject
+postgresql_host: "{{services_ip}}"
+
+instance_group: webserver
+instance_name: myproject_devel_1
+instance_count: 0
+instance_ip: "{{myproject_ip}}"
+
+
+hostname: www.myproject.devel
+linux_hostname: myproject-devel
+
+redis_host: "{{services_ip}}"
+
+solr_ip: "{{services_ip}}"
+
+
+

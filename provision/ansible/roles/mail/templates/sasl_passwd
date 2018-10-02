@@ -1,0 +1,1 @@
+[smtp.mailserver.example]:2525 {{mailer_username}}:{{mailer_password}}

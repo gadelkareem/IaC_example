@@ -1,0 +1,15 @@
+
+dev_webserver_config_path: "{{ base_path }}/provision/ansible/roles/webserver/files"
+webserver_config_path: "{{ env }}/config"
+webserver_config_files:
+        - { dest: /etc/nginx/nginx.conf , src: "{{ webserver_config_path }}/{{app_name}}/nginx/nginx.conf" }
+        - { dest: /etc/nginx/fastcgi_params , src:  "{{ webserver_config_path }}/{{app_name}}/nginx/fastcgi_params" }
+        - { dest: /etc/nginx/ssl , src:  "{{ webserver_config_path }}/{{app_name}}/nginx/ssl" }
+        - { dest: /etc/php/7.2/cli/php.ini , src: "{{ webserver_config_path }}/php/cli/php.ini" }
+        - { dest: /etc/php/7.2/fpm/php.ini , src: "{{ webserver_config_path }}/php/fpm/php.ini" }
+        - { dest: /etc/php/7.2/fpm/php-fpm.conf , src: "{{ webserver_config_path }}/php/fpm/php-fpm.conf" }
+        - { dest: /etc/php/7.2/mods-available/opcache.ini , src: "{{ webserver_config_path }}/php/opcache.ini" }
+
+xdebug_files:
+    - { dest: /etc/php/7.2/mods-available/xdebug.ini , dev_src: "{{ dev_webserver_config_path }}/{{ webserver_config_path }}/php/xdebug.ini"}
+    - { dest: /etc/nginx/whitelist_ips , dev_src:  "{{ dev_webserver_config_path }}/{{ webserver_config_path }}/{{app_name}}/nginx/whitelist_ips"}

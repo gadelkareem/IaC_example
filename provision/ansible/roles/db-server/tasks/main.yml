@@ -1,0 +1,6 @@
+---
+
+- include: rds-postgres.yml
+  when: env == "prod"
+  tags: [ rds-postgres ]
+

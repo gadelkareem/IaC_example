@@ -1,0 +1,46 @@
+
+app_name: services
+instance_group: services
+instance_name: services_dev_1
+instance_count: 0
+instance_ip: "{{services_ip}}"
+
+hostname: www.services.devel
+linux_hostname: services-dev
+
+redis_host: localhost
+
+####solr
+solr_ip: localhost
+
+postgresql_version: 10
+postgresql_admin_user: "postgres"
+postgresql_admin_password: ""
+postgresql_default_auth_method: "trust"
+postgresql_listen_addresses: "*"
+
+postgresql_pg_hba_custom:
+  - { type: host, database: all, user: all, address: "0.0.0.0/0", method: "trust", comment: 'all' }
+
+
+
+postgresql_max_connections: 198
+postgresql_shared_buffers: 512MB
+postgresql_effective_cache_size: 1536MB
+postgresql_maintenance_work_mem: 128MB
+postgresql_checkpoint_completion_target: 0.7
+postgresql_wal_buffers: 16MB
+postgresql_default_statistics_target: 100
+postgresql_random_page_cost: 1.1
+postgresql_effective_io_concurrency: 200
+postgresql_work_mem: 100MB
+postgresql_min_wal_size: 1GB
+postgresql_max_wal_size: 2GB
+postgresql_shared_preload_libraries:
+  - pg_stat_statements
+postgresql_extensions_options:
+  pg_stat_statements.track: all
+
+
+
+

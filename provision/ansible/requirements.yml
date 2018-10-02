@@ -1,0 +1,10 @@
+
+- src: geerlingguy.mailhog
+- src: geerlingguy.java
+- src: geerlingguy.solr
+- src: ANXS.postgresql
+- src: geerlingguy.rabbitmq
+
+
+
+
